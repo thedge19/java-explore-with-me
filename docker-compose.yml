@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   stats-server:
     build: ./stats/server
@@ -5,16 +7,19 @@ services:
     ports:
       - "9090:9090"
     depends_on:
-      - stats-db
+      stats-db:
+        condition: service_healthy
     environment:
       - DATABASE_URL=jdbc:postgresql://stats-db:5432/ewmstat
       - DATABASE_USERNAME=ewmstat
       - DATABASE_PASSWORD=ewmstat
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:9090/actuator/health || exit 1" ]
+      test: ["CMD-SHELL", "curl -f http://localhost:9090/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - ewm-network
 
   stats-db:
     image: postgres:14-alpine
@@ -25,31 +30,48 @@ services:
       - POSTGRES_DB=ewmstat
       - POSTGRES_USER=ewmstat
       - POSTGRES_PASSWORD=ewmstat
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ewmstat -d ewmstat"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ewm-network
 
   ewm-service:
     build: ./service
     ports:
       - "8080:8080"
     depends_on:
-      - ewm-db
+      ewm-db:
+        condition: service_healthy
+      stats-server:
+        condition: service_healthy
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/ewm
       - SPRING_DATASOURCE_USERNAME=ewm
       - SPRING_DATASOURCE_PASSWORD=ewm
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/ewm
       - STATS_SERVICE_URL=http://stats-server:9090
+    networks:
+      - ewm-network
 
   ewm-db:
     image: postgres:14-alpine
     container_name: ewm-db
     ports:
-      - "6542:5432"  # Different port than stats-db
+      - "5434:5432"
     environment:
       - POSTGRES_DB=ewm
       - POSTGRES_USER=ewm
       - POSTGRES_PASSWORD=ewm
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ewm -d ewm" ]
+      test: ["CMD-SHELL", "pg_isready -U ewm -d ewm"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - ewm-network
+
+networks:
+  ewm-network:
+    driver: bridge
