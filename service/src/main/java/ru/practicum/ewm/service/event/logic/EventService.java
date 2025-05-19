@@ -245,8 +245,10 @@ public class EventService {
         event.setCreatedOn(LocalDateTime.now());
         event.setState(EventState.PENDING);
 
-        if (eventNewDto.getParticipantLimit() < 0) {
-            throw new BadRequestException("The participant limit cannot be negative.");
+        if (eventNewDto.getParticipantLimit() != null) {
+            if (eventNewDto.getParticipantLimit() < 0) {
+                throw new BadRequestException("The participant limit must be a positive integer.");
+            }
         }
 
         if (eventNewDto.getPaid() == null) {
@@ -339,8 +341,10 @@ public class EventService {
             event.setLocation(handleLocationDto(updateEventUserRequest.getLocation()));
         }
 
-        if (updateEventUserRequest.getParticipantLimit() < 0) {
-            throw new BadRequestException("The participant limit must be a positive integer.");
+        if (updateEventUserRequest.getParticipantLimit() != null) {
+            if (updateEventUserRequest.getParticipantLimit() < 0) {
+                throw new BadRequestException("The participant limit must be a positive integer.");
+            }
         }
 
         Optional.ofNullable(updateEventUserRequest.getTitle()).ifPresent(event::setTitle);
