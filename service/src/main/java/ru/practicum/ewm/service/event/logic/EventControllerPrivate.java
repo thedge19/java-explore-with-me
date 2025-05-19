@@ -3,6 +3,7 @@ package ru.practicum.ewm.service.event.logic;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.service.event.data.event.*;
@@ -10,6 +11,7 @@ import ru.practicum.ewm.service.participationRequest.data.ParticipationRequestDt
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping(path = "/users/{userId}/events")
 @RequiredArgsConstructor
@@ -53,6 +55,7 @@ public class EventControllerPrivate {
     public EventRequestStatusUpdateResult patchEventRequests(@PathVariable long userId,
                                                              @PathVariable long eventId,
                                                              @Valid @RequestBody EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
+
         return eventService.patchParticipationRequestsByInitiator(userId, eventId, eventRequestStatusUpdateRequest);
     }
 }

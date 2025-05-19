@@ -2,10 +2,7 @@ package ru.practicum.ewm.service.event.data.event;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -44,7 +41,9 @@ public class EventNewDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = UtilConstants.DATETIME_FORMAT)
     private LocalDateTime eventTimestamp;
 
+    @PositiveOrZero
     private Integer participantLimit;
+
     private Boolean paid;
     private Boolean requestModeration;
 }
