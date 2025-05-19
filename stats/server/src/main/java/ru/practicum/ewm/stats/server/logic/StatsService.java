@@ -1,13 +1,13 @@
 package ru.practicum.ewm.stats.server.logic;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 import ru.practicum.ewm.stats.server.data.EndpointHitRepository;
 import ru.practicum.ewm.stats.server.data.StatsMapper;
 import ru.practicum.ewm.stats.server.data.ViewStatsProjection;
 import ru.practicum.ewm.stats.dto.EndpointHitDto;
 import ru.practicum.ewm.stats.dto.ViewStatsDto;
+import ru.practicum.ewm.stats.server.util.exception.BadRequestException;
 
 import java.time.LocalDateTime;
 import java.util.List;
