@@ -163,7 +163,7 @@ public class EventService {
             eventList = eventList.stream()
                     .filter(event -> event.getParticipantLimit().equals(0)
                             || event.getParticipantLimit() < participationRequestRepository.countByEventIdAndStatus(event.getId(), ParticipationRequestState.CONFIRMED))
-                    .toList();
+                    .collect(Collectors.toList());
         }
 
         List<String> eventUrls = eventList.stream()
@@ -375,7 +375,7 @@ public class EventService {
 
         List<Long> notFoundIds = eventRequestStatusUpdateRequest.getRequestIds().stream()
                 .filter(requestId -> requestList.stream().noneMatch(request -> request.getId().equals(requestId)))
-                .toList();
+                .collect(Collectors.toList());
 
         if (!notFoundIds.isEmpty()) {
             throw new NotFoundException("Participation request with id=" + notFoundIds + " was not found");
