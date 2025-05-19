@@ -1,6 +1,7 @@
 package ru.practicum.ewm.stats.server.logic;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 import ru.practicum.ewm.stats.server.data.EndpointHitRepository;
 import ru.practicum.ewm.stats.server.data.StatsMapper;
@@ -17,13 +18,17 @@ import java.util.stream.Collectors;
 public class StatsService {
     private final EndpointHitRepository endpointHitRepository;
 
-    public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, List<String> uris, Boolean unique) {
+    public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, List<String> uris, Boolean unique) throws BadRequestException {
         List<ViewStatsProjection> results;
 
         if (unique) {
             results = endpointHitRepository.findUniqueStats(start, end, uris);
         } else {
             results = endpointHitRepository.findNotUniqueStats(start, end, uris);
+        }
+
+        if (start.isAfter(end)) {
+            throw new BadRequestException("Start date must be before end date");
         }
 
         return results.stream()
