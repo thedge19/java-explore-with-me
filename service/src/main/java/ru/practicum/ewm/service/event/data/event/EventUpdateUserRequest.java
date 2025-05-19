@@ -3,7 +3,6 @@ package ru.practicum.ewm.service.event.data.event;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -36,7 +35,6 @@ public class EventUpdateUserRequest {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = UtilConstants.DATETIME_FORMAT)
     private LocalDateTime eventTimestamp;
 
-    @PositiveOrZero
     private Integer participantLimit;
 
     private Boolean paid;

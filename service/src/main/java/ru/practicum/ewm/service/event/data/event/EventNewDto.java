@@ -41,7 +41,6 @@ public class EventNewDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = UtilConstants.DATETIME_FORMAT)
     private LocalDateTime eventTimestamp;
 
-    @PositiveOrZero
     private Integer participantLimit;
 
     private Boolean paid;
