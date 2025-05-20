@@ -14,29 +14,29 @@ import java.util.List;
 
 public interface EventService {
     List<EventFullDto> getAllByAdmin(List<Long> users,
-                                            List<EventState> states,
-                                            List<Long> categories,
-                                            LocalDateTime rangeStart,
-                                            LocalDateTime rangeEnd,
-                                            int from,
-                                            int size);
+                                     List<EventState> states,
+                                     List<Long> categories,
+                                     LocalDateTime rangeStart,
+                                     LocalDateTime rangeEnd,
+                                     int from,
+                                     int size);
 
     List<EventShortDto> getAllByInitiator(long userId, int from, int size);
 
-    EventFullDto getByIdByInitiator(long userId, long eventId) ;
+    EventFullDto getByIdByInitiator(long userId, long eventId);
 
     List<ParticipationRequestDto> getParticipationRequestsByInitiator(long userId, long eventId);
 
     List<EventShortDto> getAllPublic(String text,
-                                            List<Long> categories,
-                                            Boolean paid,
-                                            LocalDateTime rangeStart,
-                                            LocalDateTime rangeEnd,
-                                            boolean onlyAvailable,
-                                            EventControllerPublic.SortMode sort,
-                                            int from,
-                                            int size,
-                                            HttpServletRequest request);
+                                     List<Long> categories,
+                                     Boolean paid,
+                                     LocalDateTime rangeStart,
+                                     LocalDateTime rangeEnd,
+                                     boolean onlyAvailable,
+                                     EventControllerPublic.SortMode sort,
+                                     int from,
+                                     int size,
+                                     HttpServletRequest request);
 
     EventFullDto getByIdPublic(long eventId, HttpServletRequest request);
 
@@ -47,6 +47,6 @@ public interface EventService {
     EventFullDto patchByInitiator(long userId, long eventId, EventUpdateUserRequest updateEventUserRequest);
 
     EventRequestStatusUpdateResult patchParticipationRequestsByInitiator(@PathVariable long userId,
-                                                                                @PathVariable long eventId,
-                                                                                @Valid @RequestBody EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest);
+                                                                         @PathVariable long eventId,
+                                                                         @Valid @RequestBody EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest);
 }
