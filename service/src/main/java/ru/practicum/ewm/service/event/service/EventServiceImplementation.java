@@ -107,16 +107,15 @@ public class EventServiceImplementation implements EventService {
                         tuple -> ((Number) tuple[1]).longValue()  // count
                 ));
 
-        return events.stream()
+        return page.getContent().stream()
                 .map(EventMapper.INSTANCE::toFullDto)
                 .peek(dto -> {
                     Optional<ViewStatsDto> matchingStats = viewStatsDtos.stream()
                             .filter(statsDto -> statsDto.getUri().equals("/events/" + dto.getId()))
                             .findFirst();
                     dto.setViews(matchingStats.map(ViewStatsDto::getHits).orElse(0L));
-
-                    dto.setConfirmedRequests(confirmedRequestsCountMap.getOrDefault(dto.getId(), 0L));
                 })
+                .peek(dto -> dto.setConfirmedRequests(participationRequestRepository.countByEventIdAndStatus(dto.getId(), ParticipationRequestState.CONFIRMED)))
                 .collect(Collectors.toList());
     }
 
@@ -183,9 +182,8 @@ public class EventServiceImplementation implements EventService {
         if (onlyAvailable) {
             eventList = eventList.stream()
                     .filter(event -> event.getParticipantLimit().equals(0)
-                            || event.getParticipantLimit() < participationRequestRepository
-                    .countByEventIdAndStatus(event.getId(), ParticipationRequestState.CONFIRMED))
-                    .toList();
+                            || event.getParticipantLimit() < participationRequestRepository.countByEventIdAndStatus(event.getId(), ParticipationRequestState.CONFIRMED))
+                    .collect(Collectors.toList());
         }
 
         List<String> eventUrls = eventList.stream()
