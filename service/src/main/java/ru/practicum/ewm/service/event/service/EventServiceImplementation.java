@@ -145,6 +145,7 @@ public class EventServiceImplementation implements EventService {
                                             int from,
                                             int size,
                                             HttpServletRequest request) {
+        // Логирование статистики
         statsClient.createEndpointHit(EndpointHitDto.builder()
                 .app("ewm")
                 .uri(request.getRequestURI())
@@ -152,60 +153,86 @@ public class EventServiceImplementation implements EventService {
                 .hitTimestamp(LocalDateTime.now())
                 .build());
 
+        // Обработка параметров
         if (categories != null && categories.size() == 1 && categories.getFirst().equals(0L)) {
             categories = null;
         }
-
         if (rangeStart == null) {
             rangeStart = LocalDateTime.now();
         }
-
         if (rangeEnd == null) {
             rangeEnd = UtilConstants.getMaxDateTime();
         }
 
+        // Получаем все подходящие события
         List<Event> eventList = eventRepository.getAllPublic(text, categories, paid, rangeStart, rangeEnd);
-
-        if (onlyAvailable) {
-            eventList = eventList.stream()
-                    .filter(event -> event.getParticipantLimit().equals(0)
-                            || event.getParticipantLimit() < participationRequestRepository.countByEventIdAndStatus(event.getId(), ParticipationRequestState.CONFIRMED))
-                    .toList();
-        }
-
-        List<String> eventUrls = eventList.stream()
-                .map(event -> "/events/" + event.getId())
-                .collect(Collectors.toList());
-
-        List<ViewStatsDto> viewStatsDtos = statsClient.getStats(rangeStart.format(UtilConstants.getDefaultDateTimeFormatter()),
-                rangeEnd.format(UtilConstants.getDefaultDateTimeFormatter()), eventUrls, true);
-
-        List<EventShortDto> eventShortDtoList = eventList.stream()
-                .map(EventMapper.INSTANCE::toShortDto)
-                .peek(dto -> {
-                    Optional<ViewStatsDto> matchingStats = viewStatsDtos.stream()
-                            .filter(statsDto -> statsDto.getUri().equals("/events/" + dto.getId()))
-                            .findFirst();
-                    dto.setViews(matchingStats.map(ViewStatsDto::getHits).orElse(0L));
-                })
-                .peek(dto -> dto.setConfirmedRequests(participationRequestRepository.countByEventIdAndStatus(dto.getId(), ParticipationRequestState.CONFIRMED)))
-                .collect(Collectors.toList());
-
-        switch (sort) {
-            case EVENT_DATE:
-                eventShortDtoList.sort(Comparator.comparing(EventShortDto::getEventDate));
-                break;
-            case VIEWS:
-                eventShortDtoList.sort(Comparator.comparing(EventShortDto::getViews).reversed());
-                break;
-        }
-
-        if (from >= eventShortDtoList.size()) {
+        if (eventList.isEmpty()) {
             return Collections.emptyList();
         }
 
-        int toIndex = Math.min(from + size, eventShortDtoList.size());
-        return eventShortDtoList.subList(from, toIndex);
+        // Собираем ID событий для групповых запросов
+        List<Long> eventIds = eventList.stream()
+                .map(Event::getId)
+                .collect(Collectors.toList());
+
+        // Получаем статистику просмотров одним запросом
+        List<String> eventUrls = eventIds.stream()
+                .map(id -> "/events/" + id)
+                .collect(Collectors.toList());
+        List<ViewStatsDto> viewStatsDtos = statsClient.getStats(
+                rangeStart.format(UtilConstants.getDefaultDateTimeFormatter()),
+                rangeEnd.format(UtilConstants.getDefaultDateTimeFormatter()),
+                eventUrls,
+                true
+        );
+
+        // Получаем количество подтвержденных запросов одним запросом
+        Map<Long, Long> confirmedRequestsCount = participationRequestRepository
+                .countByEventIdInAndStatus(eventIds, ParticipationRequestState.CONFIRMED)
+                .stream()
+                .collect(Collectors.toMap(
+                        tuple -> ((Number) tuple[0]).longValue(),
+                        tuple -> ((Number) tuple[1]).longValue()
+                ));
+
+        // Фильтрация по доступности (если нужно)
+        if (onlyAvailable) {
+            eventList = eventList.stream()
+                    .filter(event -> {
+                        Integer limit = event.getParticipantLimit();
+                        Long confirmed = confirmedRequestsCount.getOrDefault(event.getId(), 0L);
+                        return limit == 0 || limit > confirmed;
+                    })
+                    .toList();
+        }
+
+        // Преобразуем в DTO и устанавливаем дополнительные данные
+        List<EventShortDto> result = eventList.stream()
+                .map(event -> {
+                    EventShortDto dto = EventMapper.INSTANCE.toShortDto(event);
+                    // Устанавливаем просмотры
+                    dto.setViews(viewStatsDtos.stream()
+                            .filter(stats -> stats.getUri().equals("/events/" + event.getId()))
+                            .findFirst()
+                            .map(ViewStatsDto::getHits)
+                            .orElse(0L));
+                    // Устанавливаем подтвержденные запросы
+                    dto.setConfirmedRequests(confirmedRequestsCount.getOrDefault(event.getId(), 0L));
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        // Сортировка
+        if (sort == EventControllerPublic.SortMode.EVENT_DATE) {
+            result.sort(Comparator.comparing(EventShortDto::getEventDate));
+        } else if (sort == EventControllerPublic.SortMode.VIEWS) {
+            result.sort(Comparator.comparing(EventShortDto::getViews).reversed());
+        }
+
+        // Пагинация
+        int fromIndex = Math.min(from, result.size());
+        int toIndex = Math.min(from + size, result.size());
+        return result.subList(fromIndex, toIndex);
     }
 
     @Transactional(readOnly = true)
