@@ -37,4 +37,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
                              @Param("paid") Boolean paid,
                              @Param("rangeStart") LocalDateTime rangeStart,
                              @Param("rangeEnd") LocalDateTime rangeEnd);
+
+    Boolean existsByCategoryId(Long categoryId);
 }

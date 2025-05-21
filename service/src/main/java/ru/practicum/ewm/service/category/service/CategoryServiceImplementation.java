@@ -8,35 +8,35 @@ import ru.practicum.ewm.service.category.model.Category;
 import ru.practicum.ewm.service.category.dto.CategoryDto;
 import ru.practicum.ewm.service.category.dto.CategoryMapper;
 import ru.practicum.ewm.service.category.repository.CategoryRepository;
+import ru.practicum.ewm.service.event.repository.EventRepository;
+import ru.practicum.ewm.service.util.exception.ConflictException;
 import ru.practicum.ewm.service.util.exception.NotFoundException;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Transactional(readOnly = true)
 @Service
 @RequiredArgsConstructor
 public class CategoryServiceImplementation implements CategoryService {
     private final CategoryRepository categoryRepository;
+    private final EventRepository eventRepository;
 
-    @Transactional(readOnly = true)
     public List<CategoryDto> getAll(int from, int size) {
         return categoryRepository.findAll(PageRequest.of(from, size)).getContent().stream()
                 .map(CategoryMapper.INSTANCE::toDto)
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
     public CategoryDto getById(long catId) {
         return CategoryMapper.INSTANCE.toDto(findById(catId));
     }
 
-    @Transactional
     public CategoryDto create(CategoryDto categoryDto) {
         return CategoryMapper.INSTANCE.toDto(categoryRepository.save(CategoryMapper.INSTANCE.fromDto(categoryDto)));
     }
 
-    @Transactional
     public CategoryDto patch(long catId, CategoryDto categoryDto) {
         Category stored = findById(catId);
 
@@ -45,9 +45,13 @@ public class CategoryServiceImplementation implements CategoryService {
         return CategoryMapper.INSTANCE.toDto(categoryRepository.save(stored));
     }
 
-    @Transactional
     public void delete(long catId) {
         findById(catId);
+
+        if (eventRepository.existsByCategoryId(catId)) {
+            throw new ConflictException("Cannot delete category with id=" + catId + " because it has associated events");
+        }
+
         categoryRepository.deleteById(catId);
     }
 
