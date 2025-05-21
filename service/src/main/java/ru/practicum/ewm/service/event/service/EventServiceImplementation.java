@@ -69,11 +69,11 @@ public class EventServiceImplementation implements EventService {
                                             int size) {
         Pageable pageable = PageRequest.of(from, size);
 
-        if (users != null && users.size() == 1 && users.getFirst().equals(0L)) {
+        if (users != null && users.size() == 1 && users.get(0).equals(0L)) {
             users = null;
         }
 
-        if (categories != null && categories.size() == 1 && categories.getFirst().equals(0L)) {
+        if (categories != null && categories.size() == 1 && categories.get(0).equals(0L)) {
             categories = null;
         }
 
@@ -86,26 +86,13 @@ public class EventServiceImplementation implements EventService {
         }
 
         Page<Event> page = eventRepository.findAllByAdmin(users, states, categories, rangeStart, rangeEnd, pageable);
-        List<Event> events = page.getContent();
 
-        List<Long> eventIds = events.stream().map(Event::getId).toList();
+        List<String> eventUrls = page.getContent().stream()
+                .map(event -> "/events/" + event.getId())
+                .collect(Collectors.toList());
 
-        List<String> eventUrls = eventIds.stream().map(id -> "/events/" + id).collect(Collectors.toList());
-
-        List<ViewStatsDto> viewStatsDtos = statsClient.getStats(
-                rangeStart.format(UtilConstants.getDefaultDateTimeFormatter()),
-                rangeEnd.format(UtilConstants.getDefaultDateTimeFormatter()),
-                eventUrls,
-                true
-        );
-
-        Map<Long, Long> confirmedRequestsCountMap = participationRequestRepository
-                .countByEventIdInAndStatus(eventIds, ParticipationRequestState.CONFIRMED)
-                .stream()
-                .collect(Collectors.toMap(
-                        tuple -> ((Number) tuple[0]).longValue(), // eventId
-                        tuple -> ((Number) tuple[1]).longValue()  // count
-                ));
+        List<ViewStatsDto> viewStatsDtos = statsClient.getStats(rangeStart.format(UtilConstants.getDefaultDateTimeFormatter()),
+                rangeEnd.format(UtilConstants.getDefaultDateTimeFormatter()), eventUrls, true);
 
         return page.getContent().stream()
                 .map(EventMapper.INSTANCE::toFullDto)
