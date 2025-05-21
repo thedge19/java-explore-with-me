@@ -44,7 +44,7 @@ public class CategoryServiceImplementation implements CategoryService {
 
         Optional.ofNullable(categoryDto.getName()).ifPresent(stored::setName);
 
-        return CategoryMapper.INSTANCE.toDto(categoryRepository.save(stored));
+        return CategoryMapper.INSTANCE.toDto(stored);
     }
 
     @Transactional

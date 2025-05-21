@@ -69,11 +69,11 @@ public class EventServiceImplementation implements EventService {
                                             int size) {
         Pageable pageable = PageRequest.of(from, size);
 
-        if (users != null && users.size() == 1 && users.get(0).equals(0L)) {
+        if (users != null && users.size() == 1 && users.getFirst().equals(0L)) {
             users = null;
         }
 
-        if (categories != null && categories.size() == 1 && categories.get(0).equals(0L)) {
+        if (categories != null && categories.size() == 1 && categories.getFirst().equals(0L)) {
             categories = null;
         }
 
@@ -86,23 +86,37 @@ public class EventServiceImplementation implements EventService {
         }
 
         Page<Event> page = eventRepository.findAllByAdmin(users, states, categories, rangeStart, rangeEnd, pageable);
+        List<Event> events = page.getContent();
 
-        List<String> eventUrls = page.getContent().stream()
-                .map(event -> "/events/" + event.getId())
-                .collect(Collectors.toList());
+        List<Long> eventIds = events.stream().map(Event::getId).toList();
 
-        List<ViewStatsDto> viewStatsDtos = statsClient.getStats(rangeStart.format(UtilConstants.getDefaultDateTimeFormatter()),
-                rangeEnd.format(UtilConstants.getDefaultDateTimeFormatter()), eventUrls, true);
+        List<String> eventUrls = eventIds.stream().map(id -> "/events/" + id).collect(Collectors.toList());
 
-        return page.getContent().stream()
+        List<ViewStatsDto> viewStatsDtos = statsClient.getStats(
+                rangeStart.format(UtilConstants.getDefaultDateTimeFormatter()),
+                rangeEnd.format(UtilConstants.getDefaultDateTimeFormatter()),
+                eventUrls,
+                true
+        );
+
+        Map<Long, Long> confirmedRequestsCountMap = participationRequestRepository
+                .countByEventIdInAndStatus(eventIds, ParticipationRequestState.CONFIRMED)
+                .stream()
+                .collect(Collectors.toMap(
+                        tuple -> ((Number) tuple[0]).longValue(), // eventId
+                        tuple -> ((Number) tuple[1]).longValue()  // count
+                ));
+
+        return events.stream()
                 .map(EventMapper.INSTANCE::toFullDto)
                 .peek(dto -> {
                     Optional<ViewStatsDto> matchingStats = viewStatsDtos.stream()
                             .filter(statsDto -> statsDto.getUri().equals("/events/" + dto.getId()))
                             .findFirst();
                     dto.setViews(matchingStats.map(ViewStatsDto::getHits).orElse(0L));
+
+                    dto.setConfirmedRequests(confirmedRequestsCountMap.getOrDefault(dto.getId(), 0L));
                 })
-                .peek(dto -> dto.setConfirmedRequests(participationRequestRepository.countByEventIdAndStatus(dto.getId(), ParticipationRequestState.CONFIRMED)))
                 .collect(Collectors.toList());
     }
 
@@ -169,8 +183,9 @@ public class EventServiceImplementation implements EventService {
         if (onlyAvailable) {
             eventList = eventList.stream()
                     .filter(event -> event.getParticipantLimit().equals(0)
-                            || event.getParticipantLimit() < participationRequestRepository.countByEventIdAndStatus(event.getId(), ParticipationRequestState.CONFIRMED))
-                    .collect(Collectors.toList());
+                            || event.getParticipantLimit() < participationRequestRepository
+                    .countByEventIdAndStatus(event.getId(), ParticipationRequestState.CONFIRMED))
+                    .toList();
         }
 
         List<String> eventUrls = eventList.stream()
