@@ -33,10 +33,12 @@ public class CategoryServiceImplementation implements CategoryService {
         return CategoryMapper.INSTANCE.toDto(findById(catId));
     }
 
+    @Transactional
     public CategoryDto create(CategoryDto categoryDto) {
         return CategoryMapper.INSTANCE.toDto(categoryRepository.save(CategoryMapper.INSTANCE.fromDto(categoryDto)));
     }
 
+    @Transactional
     public CategoryDto patch(long catId, CategoryDto categoryDto) {
         Category stored = findById(catId);
 
@@ -45,6 +47,7 @@ public class CategoryServiceImplementation implements CategoryService {
         return CategoryMapper.INSTANCE.toDto(categoryRepository.save(stored));
     }
 
+    @Transactional
     public void delete(long catId) {
         findById(catId);
 
