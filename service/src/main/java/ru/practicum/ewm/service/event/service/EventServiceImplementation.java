@@ -69,11 +69,11 @@ public class EventServiceImplementation implements EventService {
                                             int size) {
         Pageable pageable = PageRequest.of(from, size);
 
-        if (users != null && users.size() == 1 && users.get(0).equals(0L)) {
+        if (users != null && users.size() == 1 && users.getFirst().equals(0L)) {
             users = null;
         }
 
-        if (categories != null && categories.size() == 1 && categories.get(0).equals(0L)) {
+        if (categories != null && categories.size() == 1 && categories.getFirst().equals(0L)) {
             categories = null;
         }
 
@@ -152,7 +152,7 @@ public class EventServiceImplementation implements EventService {
                 .hitTimestamp(LocalDateTime.now())
                 .build());
 
-        if (categories != null && categories.size() == 1 && categories.get(0).equals(0L)) {
+        if (categories != null && categories.size() == 1 && categories.getFirst().equals(0L)) {
             categories = null;
         }
 
@@ -170,7 +170,7 @@ public class EventServiceImplementation implements EventService {
             eventList = eventList.stream()
                     .filter(event -> event.getParticipantLimit().equals(0)
                             || event.getParticipantLimit() < participationRequestRepository.countByEventIdAndStatus(event.getId(), ParticipationRequestState.CONFIRMED))
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         List<String> eventUrls = eventList.stream()
@@ -193,10 +193,10 @@ public class EventServiceImplementation implements EventService {
 
         switch (sort) {
             case EVENT_DATE:
-                Collections.sort(eventShortDtoList, Comparator.comparing(EventShortDto::getEventDate));
+                eventShortDtoList.sort(Comparator.comparing(EventShortDto::getEventDate));
                 break;
             case VIEWS:
-                Collections.sort(eventShortDtoList, Comparator.comparing(EventShortDto::getViews).reversed());
+                eventShortDtoList.sort(Comparator.comparing(EventShortDto::getViews).reversed());
                 break;
         }
 
@@ -229,7 +229,7 @@ public class EventServiceImplementation implements EventService {
                 UtilConstants.getMaxDateTime().plusYears(1).format(UtilConstants.getDefaultDateTimeFormatter()), eventUrls, true);
 
         EventFullDto dto = EventMapper.INSTANCE.toFullDto(event);
-        dto.setViews(viewStatsDtos.isEmpty() ? 0L : viewStatsDtos.get(0).getHits());
+        dto.setViews(viewStatsDtos.isEmpty() ? 0L : viewStatsDtos.getFirst().getHits());
         dto.setConfirmedRequests(participationRequestRepository.countByEventIdAndStatus(dto.getId(), ParticipationRequestState.CONFIRMED));
 
         return dto;
@@ -394,7 +394,7 @@ public class EventServiceImplementation implements EventService {
 
         List<Long> notFoundIds = eventRequestStatusUpdateRequest.getRequestIds().stream()
                 .filter(requestId -> requestList.stream().noneMatch(request -> request.getId().equals(requestId)))
-                .collect(Collectors.toList());
+                .toList();
 
         if (!notFoundIds.isEmpty()) {
             throw new NotFoundException("Participation request with id=" + notFoundIds + " was not found");
