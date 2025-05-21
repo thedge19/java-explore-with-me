@@ -1,6 +1,5 @@
 package ru.practicum.ewm.service.category.controller;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
