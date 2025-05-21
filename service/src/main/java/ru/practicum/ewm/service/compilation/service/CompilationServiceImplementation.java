@@ -20,13 +20,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Transactional(readOnly = true)
 @Service
 @RequiredArgsConstructor
 public class CompilationServiceImplementation implements CompilationService {
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
 
-    @Transactional(readOnly = true)
+
     public List<CompilationDto> getAll(Boolean pinned, int from, int size) {
         Pageable pageable = PageRequest.of(from, size);
 
@@ -35,7 +36,6 @@ public class CompilationServiceImplementation implements CompilationService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
     public CompilationDto getById(long compId) {
         return CompilationMapper.INSTANCE.toDto(findCompilationById(compId));
     }

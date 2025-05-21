@@ -67,6 +67,7 @@ public class EventServiceImplementation implements EventService {
                                             LocalDateTime rangeEnd,
                                             int from,
                                             int size) {
+        // Обработка параметров
         Pageable pageable = PageRequest.of(from, size);
 
         if (users != null && users.size() == 1 && users.getFirst().equals(0L)) {
@@ -85,24 +86,57 @@ public class EventServiceImplementation implements EventService {
             rangeEnd = UtilConstants.getMaxDateTime();
         }
 
+        // Получаем страницу событий
         Page<Event> page = eventRepository.findAllByAdmin(users, states, categories, rangeStart, rangeEnd, pageable);
+        List<Event> events = page.getContent();
 
-        List<String> eventUrls = page.getContent().stream()
-                .map(event -> "/events/" + event.getId())
+        if (events.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Получаем ID всех событий для групповых запросов
+        List<Long> eventIds = events.stream()
+                .map(Event::getId)
                 .collect(Collectors.toList());
 
-        List<ViewStatsDto> viewStatsDtos = statsClient.getStats(rangeStart.format(UtilConstants.getDefaultDateTimeFormatter()),
-                rangeEnd.format(UtilConstants.getDefaultDateTimeFormatter()), eventUrls, true);
+        // 1. Получаем статистику просмотров одним запросом
+        List<String> eventUrls = eventIds.stream()
+                .map(id -> "/events/" + id)
+                .collect(Collectors.toList());
 
-        return page.getContent().stream()
-                .map(EventMapper.INSTANCE::toFullDto)
-                .peek(dto -> {
-                    Optional<ViewStatsDto> matchingStats = viewStatsDtos.stream()
-                            .filter(statsDto -> statsDto.getUri().equals("/events/" + dto.getId()))
-                            .findFirst();
-                    dto.setViews(matchingStats.map(ViewStatsDto::getHits).orElse(0L));
+        List<ViewStatsDto> viewStatsDtos = statsClient.getStats(
+                rangeStart.format(UtilConstants.getDefaultDateTimeFormatter()),
+                rangeEnd.format(UtilConstants.getDefaultDateTimeFormatter()),
+                eventUrls,
+                true
+        );
+
+        // 2. Получаем количество подтвержденных запросов одним запросом
+        Map<Long, Long> confirmedRequestsMap = participationRequestRepository
+                .countByEventIdInAndStatus(eventIds, ParticipationRequestState.CONFIRMED)
+                .stream()
+                .collect(Collectors.toMap(
+                        tuple -> ((Number) tuple[0]).longValue(), // eventId
+                        tuple -> ((Number) tuple[1]).longValue()  // count
+                ));
+
+        // Собираем результат
+        return events.stream()
+                .map(event -> {
+                    EventFullDto dto = EventMapper.INSTANCE.toFullDto(event);
+
+                    // Устанавливаем просмотры
+                    dto.setViews(viewStatsDtos.stream()
+                            .filter(stats -> stats.getUri().equals("/events/" + event.getId()))
+                            .findFirst()
+                            .map(ViewStatsDto::getHits)
+                            .orElse(0L));
+
+                    // Устанавливаем подтвержденные запросы из мапы
+                    dto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(event.getId(), 0L));
+
+                    return dto;
                 })
-                .peek(dto -> dto.setConfirmedRequests(participationRequestRepository.countByEventIdAndStatus(dto.getId(), ParticipationRequestState.CONFIRMED)))
                 .collect(Collectors.toList());
     }
 
