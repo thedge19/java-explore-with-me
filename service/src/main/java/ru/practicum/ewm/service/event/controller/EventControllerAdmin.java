@@ -1,6 +1,5 @@
 package ru.practicum.ewm.service.event.controller;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
