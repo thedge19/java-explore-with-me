@@ -1,5 +1,6 @@
 package ru.practicum.ewm.service.event.controller;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,21 +43,21 @@ public class EventControllerPrivate {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EventFullDto create(@PathVariable long userId,
-                               @RequestBody EventNewDto eventNewDto) {
+                               @Valid @RequestBody EventNewDto eventNewDto) {
         return eventService.create(userId, eventNewDto);
     }
 
     @PatchMapping("/{eventId}")
     public EventFullDto patchEventInfo(@PathVariable long userId,
                                        @PathVariable long eventId,
-                                       @RequestBody EventUpdateUserRequest updateEventUserRequest) {
+                                       @Valid @RequestBody EventUpdateUserRequest updateEventUserRequest) {
         return eventService.patchByInitiator(userId, eventId, updateEventUserRequest);
     }
 
     @PatchMapping("/{eventId}/requests")
     public EventRequestStatusUpdateResult patchEventRequests(@PathVariable long userId,
                                                              @PathVariable long eventId,
-                                                             @RequestBody EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
+                                                             @Valid @RequestBody EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
 
         return eventService.patchParticipationRequestsByInitiator(userId, eventId, eventRequestStatusUpdateRequest);
     }

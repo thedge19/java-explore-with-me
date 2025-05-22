@@ -1,5 +1,6 @@
 package ru.practicum.ewm.service.compilation.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
@@ -18,13 +19,13 @@ public class CompilationControllerAdmin {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CompilationDto create(@RequestBody CompilationNewDto compilationNewDto) {
+    public CompilationDto create(@Valid @RequestBody CompilationNewDto compilationNewDto) {
         return compilationService.create(compilationNewDto);
     }
 
     @PatchMapping("/{compId}")
     public CompilationDto patch(@PathVariable long compId,
-                                @RequestBody CompilationUpdateRequest compilationUpdateRequest) {
+                                @Valid @RequestBody CompilationUpdateRequest compilationUpdateRequest) {
         return compilationService.patch(compId, compilationUpdateRequest);
     }
 
