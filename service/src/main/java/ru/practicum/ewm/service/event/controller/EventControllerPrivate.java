@@ -1,6 +1,5 @@
 package ru.practicum.ewm.service.event.controller;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +42,7 @@ public class EventControllerPrivate {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EventFullDto create(@PathVariable long userId,
-                               @RequestBody @Valid EventNewDto eventNewDto) {
+                               @RequestBody EventNewDto eventNewDto) {
         return eventService.create(userId, eventNewDto);
     }
 

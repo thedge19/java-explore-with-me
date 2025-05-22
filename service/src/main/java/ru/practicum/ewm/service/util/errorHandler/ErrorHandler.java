@@ -32,13 +32,18 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<Map<String, String>> handleValidationException(ConstraintViolationException ex) {
-        Map<String, String> errors = ex.getConstraintViolations().stream()
-                .collect(Collectors.toMap(
-                        v -> v.getPropertyPath().toString(),
-                        ConstraintViolation::getMessage
-                ));
-        return ResponseEntity.badRequest().body(errors);  // Всегда 400
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleConstraintViolation(ConstraintViolationException ex) {
+        String message = ex.getConstraintViolations().stream()
+                .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                .collect(Collectors.joining("; "));
+
+        return ApiError.builder()
+                .status(HttpStatus.BAD_REQUEST)
+                .reason("Validation failed")
+                .message(message)
+                .errorTimestamp(LocalDateTime.now())
+                .build();
     }
 
     @ExceptionHandler
@@ -80,7 +85,7 @@ public class ErrorHandler {
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiError handleConflictException(ConflictException e) {
         return ApiError.builder()
-                .status(HttpStatus.FORBIDDEN)
+                .status(HttpStatus.CONFLICT)  // Было FORBIDDEN
                 .reason("For the requested operation the conditions are not met.")
                 .message(e.getMessage())
                 .errorTimestamp(LocalDateTime.now())
