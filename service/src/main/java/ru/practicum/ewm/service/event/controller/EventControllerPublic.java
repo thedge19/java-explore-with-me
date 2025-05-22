@@ -1,11 +1,11 @@
 package ru.practicum.ewm.service.event.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.service.event.dto.EventFullDto;
 import ru.practicum.ewm.service.event.dto.EventShortDto;
@@ -16,6 +16,7 @@ import ru.practicum.ewm.service.util.exception.BadRequestException;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Validated
 @Slf4j
 @RestController
 @RequestMapping(path = "/events")
@@ -31,8 +32,8 @@ public class EventControllerPublic {
                                       @RequestParam(required = false) @DateTimeFormat(pattern = UtilConstants.DATETIME_FORMAT) LocalDateTime rangeEnd,
                                       @RequestParam(defaultValue = "false") boolean onlyAvailable,
                                       @RequestParam(defaultValue = "VIEWS") SortMode sort,
-                                      @Valid @RequestParam(defaultValue = "0") @Min(0) int from,
-                                      @Valid @RequestParam(defaultValue = "10") @Min(1) int size,
+                                      @RequestParam(defaultValue = "0") @Min(0) int from,
+                                      @RequestParam(defaultValue = "10") @Min(1) int size,
                                       HttpServletRequest request) {
         log.info("Get all events");
         if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
