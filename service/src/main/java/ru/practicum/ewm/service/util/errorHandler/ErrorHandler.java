@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.practicum.ewm.service.util.exception.BadRequestException;
 import ru.practicum.ewm.service.util.exception.ConflictException;
+import ru.practicum.ewm.service.util.exception.ForbiddenException;
 import ru.practicum.ewm.service.util.exception.NotFoundException;
 
 import java.time.LocalDateTime;
@@ -18,21 +19,6 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class ErrorHandler {
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiError handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
-        String message = ex.getBindingResult().getFieldErrors().stream()
-                .map(f -> f.getField() + ": " + f.getDefaultMessage())
-                .collect(Collectors.joining("; "));
-        return ApiError.builder()
-                .status(HttpStatus.BAD_REQUEST)
-                .reason("Validation failed")
-                .message(message)
-                .errorTimestamp(LocalDateTime.now())
-                .build();
-    }
-
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleBadRequestException(BadRequestException e) {
@@ -40,20 +26,6 @@ public class ErrorHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .reason("Incorrectly made request.")
                 .message(e.getMessage())
-                .errorTimestamp(LocalDateTime.now())
-                .build();
-    }
-
-    @ExceptionHandler(ConstraintViolationException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiError handleConstraintViolation(ConstraintViolationException ex) {
-        String message = ex.getConstraintViolations().stream()
-                .map(v -> v.getPropertyPath() + ": " + v.getMessage())
-                .collect(Collectors.joining("; "));
-        return ApiError.builder()
-                .status(HttpStatus.BAD_REQUEST)
-                .reason("Validation failed")
-                .message(message)
                 .errorTimestamp(LocalDateTime.now())
                 .build();
     }
@@ -83,6 +55,17 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiError handleForbiddenException(ForbiddenException e) {
+        return ApiError.builder()
+                .status(HttpStatus.FORBIDDEN)
+                .reason("The required action forbidden.")
+                .message(e.getMessage())
+                .errorTimestamp(LocalDateTime.now())
+                .build();
+    }
+
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ApiError handleNotFoundException(NotFoundException e) {
         return ApiError.builder()
@@ -97,7 +80,7 @@ public class ErrorHandler {
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiError handleConflictException(ConflictException e) {
         return ApiError.builder()
-                .status(HttpStatus.CONFLICT)  // Было FORBIDDEN
+                .status(HttpStatus.FORBIDDEN)
                 .reason("For the requested operation the conditions are not met.")
                 .message(e.getMessage())
                 .errorTimestamp(LocalDateTime.now())
