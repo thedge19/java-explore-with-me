@@ -259,6 +259,10 @@ public class EventServiceImplementation implements EventService {
             event.setParticipantLimit(0);
         }
 
+        if (eventNewDto.getParticipantLimit() != null && eventNewDto.getParticipantLimit() < 0) {
+            throw new BadRequestException("Participant limit cannot be negative");
+        }
+
         if (eventNewDto.getRequestModeration() == null) {
             event.setRequestModeration(true);
         }
