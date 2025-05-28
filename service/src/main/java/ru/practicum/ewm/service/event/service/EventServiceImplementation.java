@@ -237,6 +237,7 @@ public class EventServiceImplementation implements EventService {
 
     @Transactional
     public EventFullDto create(long userId, EventNewDto eventNewDto) {
+
         if (LocalDateTime.now().plusHours(2).isAfter(eventNewDto.getEventTimestamp())) {
             throw new ConflictException("The event date must be 2 hours from the current time or later.");
         }
