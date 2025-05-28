@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "bf4f7995-33d3-4204-a223-57490976c27e",
-		"name": "Test Explore With Me - Main service",
+		"name": "feature",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "26948900"
 	},
@@ -14211,7 +14211,7 @@
 					"                this.pm.sendRequest(request, (error, response) => {",
 					"                    if(error || (response.code >= 400 && response.code <= 599)) {",
 					"                        let err = error ? error : JSON.stringify(response.json());",
-					"                        console.error(\"При выполнении запроса к серверу возникла ошика.\\n\", err,",
+					"                        console.error(\"При выполнении запроса к серверу возникла ошибка.\\n\", err,",
 					"                             \"\\nДля отладки проблемы повторите такой же запрос к вашей программе \" + ",
 					"                             \"на локальном компьютере. Данные запроса:\\n\", JSON.stringify(request));",
 					"",
