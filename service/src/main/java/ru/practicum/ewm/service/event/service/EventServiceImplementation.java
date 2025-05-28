@@ -251,10 +251,6 @@ public class EventServiceImplementation implements EventService {
         event.setCreatedOn(LocalDateTime.now());
         event.setState(EventState.PENDING);
 
-        if (eventNewDto.getParticipantLimit() != null && eventNewDto.getParticipantLimit() < 0) {
-            throw new BadRequestException("The participant limit cannot be negative.");
-        }
-
         if (eventNewDto.getPaid() == null) {
             event.setPaid(false);
         }
