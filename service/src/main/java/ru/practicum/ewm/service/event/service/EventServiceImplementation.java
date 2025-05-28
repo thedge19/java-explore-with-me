@@ -29,6 +29,7 @@ import ru.practicum.ewm.service.participationRequest.repository.ParticipationReq
 import ru.practicum.ewm.service.user.model.User;
 import ru.practicum.ewm.service.user.repository.UserRepository;
 import ru.practicum.ewm.service.util.UtilConstants;
+import ru.practicum.ewm.service.util.exception.BadRequestException;
 import ru.practicum.ewm.service.util.exception.ConflictException;
 import ru.practicum.ewm.service.util.exception.NotFoundException;
 import ru.practicum.ewm.stats.client.StatsClient;
@@ -327,6 +328,10 @@ public class EventServiceImplementation implements EventService {
             throw new ConflictException("The event date must be 2 hours from the current time or later.");
         }
 
+        if (updateEventUserRequest.getParticipantLimit() != null && updateEventUserRequest.getParticipantLimit() < 0) {
+            throw new BadRequestException("The participant limit cannot be negative.");
+        }
+
         if (!(event.getState().equals(EventState.CANCELED) ||
                 event.getState().equals(EventState.PENDING))) {
             throw new ConflictException("Only pending or canceled events can be changed");
@@ -339,10 +344,6 @@ public class EventServiceImplementation implements EventService {
         if (updateEventUserRequest.getLocation() != null) {
             event.setLocation(handleLocationDto(updateEventUserRequest.getLocation()));
         }
-//
-//        if (updateEventUserRequest.getParticipantLimit() < 0) {
-//            throw new BadRequestException("The participant limit must be a positive integer.");
-//        }
 
         Optional.ofNullable(updateEventUserRequest.getTitle()).ifPresent(event::setTitle);
         Optional.ofNullable(updateEventUserRequest.getAnnotation()).ifPresent(event::setAnnotation);
