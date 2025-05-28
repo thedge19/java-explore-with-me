@@ -77,7 +77,7 @@ public class ErrorHandler {
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiError handleConflictException(ConflictException e) {
         return ApiError.builder()
-                .status(HttpStatus.FORBIDDEN)
+                .status(HttpStatus.CONFLICT)
                 .reason("For the requested operation the conditions are not met.")
                 .message(e.getMessage())
                 .errorTimestamp(LocalDateTime.now())
