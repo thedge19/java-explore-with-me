@@ -340,10 +340,10 @@ public class EventServiceImplementation implements EventService {
         if (updateEventUserRequest.getLocation() != null) {
             event.setLocation(handleLocationDto(updateEventUserRequest.getLocation()));
         }
-
-        if (updateEventUserRequest.getParticipantLimit() < 0) {
-            throw new BadRequestException("The participant limit must be a positive integer.");
-        }
+//
+//        if (updateEventUserRequest.getParticipantLimit() < 0) {
+//            throw new BadRequestException("The participant limit must be a positive integer.");
+//        }
 
         Optional.ofNullable(updateEventUserRequest.getTitle()).ifPresent(event::setTitle);
         Optional.ofNullable(updateEventUserRequest.getAnnotation()).ifPresent(event::setAnnotation);
