@@ -29,7 +29,6 @@ import ru.practicum.ewm.service.participationRequest.repository.ParticipationReq
 import ru.practicum.ewm.service.user.model.User;
 import ru.practicum.ewm.service.user.repository.UserRepository;
 import ru.practicum.ewm.service.util.UtilConstants;
-import ru.practicum.ewm.service.util.exception.BadRequestException;
 import ru.practicum.ewm.service.util.exception.ConflictException;
 import ru.practicum.ewm.service.util.exception.NotFoundException;
 import ru.practicum.ewm.stats.client.StatsClient;
