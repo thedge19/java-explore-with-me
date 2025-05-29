@@ -264,6 +264,12 @@ public class EventServiceImplementation implements EventService {
             event.setRequestModeration(true);
         }
 
+        if (eventNewDto.getParticipantLimit() != null) {
+            if (eventNewDto.getParticipantLimit() < 0) {
+                throw new BadRequestException("The participant limit must be a positive integer.");
+            }
+        }
+
         return EventMapper.INSTANCE.toFullDto(eventRepository.save(event));
     }
 
