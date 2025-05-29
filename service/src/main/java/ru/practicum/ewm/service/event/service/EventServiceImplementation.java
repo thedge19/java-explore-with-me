@@ -242,6 +242,11 @@ public class EventServiceImplementation implements EventService {
             throw new ConflictException("The event date must be 2 hours from the current time or later.");
         }
 
+        // Проверка participantLimit
+        if (eventNewDto.getParticipantLimit() != null && eventNewDto.getParticipantLimit() < 0) {
+            throw new BadRequestException("The participant limit must be a positive integer.");
+        }
+
         User user = findUserById(userId);
         Category category = findCategoryById(eventNewDto.getCategory());
         Location location = handleLocationDto(eventNewDto.getLocation());
