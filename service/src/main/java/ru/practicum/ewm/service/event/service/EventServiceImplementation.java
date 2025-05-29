@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class EventServiceImplementation implements EventService {
+
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
