@@ -15,7 +15,7 @@ import ru.practicum.ewm.service.util.UtilConstants;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Validated
+
 @RestController
 @RequestMapping(path = "/admin/events")
 @RequiredArgsConstructor

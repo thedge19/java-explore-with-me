@@ -69,11 +69,11 @@ public class EventServiceImplementation implements EventService {
                                             int size) {
         Pageable pageable = PageRequest.of(from, size);
 
-        if (users != null && users.size() == 1 && users.getFirst().equals(0L)) {
+        if (users != null && users.size() == 1 && users.get(0).equals(0L)) {
             users = null;
         }
 
-        if (categories != null && categories.size() == 1 && categories.getFirst().equals(0L)) {
+        if (categories != null && categories.size() == 1 && categories.get(0).equals(0L)) {
             categories = null;
         }
 
@@ -152,7 +152,7 @@ public class EventServiceImplementation implements EventService {
                 .hitTimestamp(LocalDateTime.now())
                 .build());
 
-        if (categories != null && categories.size() == 1 && categories.getFirst().equals(0L)) {
+        if (categories != null && categories.size() == 1 && categories.get(0).equals(0L)) {
             categories = null;
         }
 
@@ -170,7 +170,7 @@ public class EventServiceImplementation implements EventService {
             eventList = eventList.stream()
                     .filter(event -> event.getParticipantLimit().equals(0)
                             || event.getParticipantLimit() < participationRequestRepository.countByEventIdAndStatus(event.getId(), ParticipationRequestState.CONFIRMED))
-                    .toList();
+                    .collect(Collectors.toList());
         }
 
         List<String> eventUrls = eventList.stream()
@@ -193,10 +193,10 @@ public class EventServiceImplementation implements EventService {
 
         switch (sort) {
             case EVENT_DATE:
-                eventShortDtoList.sort(Comparator.comparing(EventShortDto::getEventDate));
+                Collections.sort(eventShortDtoList, Comparator.comparing(EventShortDto::getEventDate));
                 break;
             case VIEWS:
-                eventShortDtoList.sort(Comparator.comparing(EventShortDto::getViews).reversed());
+                Collections.sort(eventShortDtoList, Comparator.comparing(EventShortDto::getViews).reversed());
                 break;
         }
 
@@ -229,7 +229,7 @@ public class EventServiceImplementation implements EventService {
                 UtilConstants.getMaxDateTime().plusYears(1).format(UtilConstants.getDefaultDateTimeFormatter()), eventUrls, true);
 
         EventFullDto dto = EventMapper.INSTANCE.toFullDto(event);
-        dto.setViews(viewStatsDtos.isEmpty() ? 0L : viewStatsDtos.getFirst().getHits());
+        dto.setViews(viewStatsDtos.isEmpty() ? 0L : viewStatsDtos.get(0).getHits());
         dto.setConfirmedRequests(participationRequestRepository.countByEventIdAndStatus(dto.getId(), ParticipationRequestState.CONFIRMED));
 
         return dto;
@@ -237,7 +237,6 @@ public class EventServiceImplementation implements EventService {
 
     @Transactional
     public EventFullDto create(long userId, EventNewDto eventNewDto) {
-
         if (LocalDateTime.now().plusHours(2).isAfter(eventNewDto.getEventTimestamp())) {
             throw new ConflictException("The event date must be 2 hours from the current time or later.");
         }
@@ -258,10 +257,6 @@ public class EventServiceImplementation implements EventService {
 
         if (eventNewDto.getParticipantLimit() == null) {
             event.setParticipantLimit(0);
-        }
-
-        if (eventNewDto.getParticipantLimit() != null && eventNewDto.getParticipantLimit() < 0) {
-            throw new BadRequestException("Participant limit cannot be negative");
         }
 
         if (eventNewDto.getRequestModeration() == null) {
@@ -333,10 +328,6 @@ public class EventServiceImplementation implements EventService {
             throw new ConflictException("The event date must be 2 hours from the current time or later.");
         }
 
-        if (updateEventUserRequest.getParticipantLimit() != null && updateEventUserRequest.getParticipantLimit() < 0) {
-            throw new BadRequestException("The participant limit cannot be negative.");
-        }
-
         if (!(event.getState().equals(EventState.CANCELED) ||
                 event.getState().equals(EventState.PENDING))) {
             throw new ConflictException("Only pending or canceled events can be changed");
@@ -391,7 +382,7 @@ public class EventServiceImplementation implements EventService {
 
         List<Long> notFoundIds = eventRequestStatusUpdateRequest.getRequestIds().stream()
                 .filter(requestId -> requestList.stream().noneMatch(request -> request.getId().equals(requestId)))
-                .toList();
+                .collect(Collectors.toList());
 
         if (!notFoundIds.isEmpty()) {
             throw new NotFoundException("Participation request with id=" + notFoundIds + " was not found");
