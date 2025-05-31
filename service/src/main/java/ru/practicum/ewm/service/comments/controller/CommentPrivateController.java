@@ -1,8 +1,12 @@
 package ru.practicum.ewm.service.comments.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.service.comments.dto.CommentDto;
 import ru.practicum.ewm.service.comments.dto.CommentNewDto;
@@ -24,10 +28,25 @@ public class CommentPrivateController {
     }
 
     @PatchMapping("/{commentId}")
-    public CommentDto patch(@PathVariable long userId,
-                            @PathVariable long commentId,
-                            @Valid @RequestBody CommentUpdateRequest commentUpdateRequest) {
-        return commentService.patchByUser(userId, commentId, commentUpdateRequest);
+    public ResponseEntity<CommentDto> patch(
+            @PathVariable @Min(1) long userId,
+            @PathVariable @Min(1) long commentId,
+            @RequestHeader(name = "X-Request-Id", required = false)
+            @Pattern(regexp = "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+            String requestId,
+            @Valid @RequestBody CommentUpdateRequest commentUpdateRequest) {
+
+        // Бизнес-логика
+        CommentDto updatedComment = commentService.patchByUser(userId, commentId, commentUpdateRequest);
+
+        HttpHeaders headers = new HttpHeaders();
+        if (requestId != null) {
+            headers.add("X-Request-Id", requestId);
+        }
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(updatedComment);
     }
 
     @DeleteMapping("/{commentId}")
