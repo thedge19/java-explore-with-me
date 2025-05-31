@@ -35,7 +35,6 @@ public class CommentPrivateController {
             @Pattern(regexp = "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
             String requestId,
             @Valid @RequestBody CommentUpdateRequest commentUpdateRequest) {
-
         // Бизнес-логика
         CommentDto updatedComment = commentService.patchByUser(userId, commentId, commentUpdateRequest);
 
