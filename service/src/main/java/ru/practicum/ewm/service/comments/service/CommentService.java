@@ -5,8 +5,6 @@ import ru.practicum.ewm.service.comments.dto.CommentDto;
 import ru.practicum.ewm.service.comments.dto.CommentNewDto;
 import ru.practicum.ewm.service.comments.dto.CommentUpdateRequest;
 
-import java.util.List;
-
 public interface CommentService {
     Page<CommentDto> getAllByEventId(long eventId, int page, int size);
 

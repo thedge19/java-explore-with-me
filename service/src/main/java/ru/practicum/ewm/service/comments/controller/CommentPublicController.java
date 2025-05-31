@@ -6,8 +6,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.service.comments.dto.CommentDto;
 import ru.practicum.ewm.service.comments.service.CommentService;
 
-import java.util.List;
-
 @RestController
 @RequestMapping(path = "/comments")
 @RequiredArgsConstructor
