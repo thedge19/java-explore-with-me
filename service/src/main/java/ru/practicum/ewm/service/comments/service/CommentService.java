@@ -1,5 +1,6 @@
 package ru.practicum.ewm.service.comments.service;
 
+import org.springframework.data.domain.Page;
 import ru.practicum.ewm.service.comments.dto.CommentDto;
 import ru.practicum.ewm.service.comments.dto.CommentNewDto;
 import ru.practicum.ewm.service.comments.dto.CommentUpdateRequest;
@@ -7,7 +8,7 @@ import ru.practicum.ewm.service.comments.dto.CommentUpdateRequest;
 import java.util.List;
 
 public interface CommentService {
-    List<CommentDto> getAllByEventId(long eventId);
+    Page<CommentDto> getAllByEventId(long eventId, int page, int size);
 
     CommentDto create(long userId, long eventId, CommentNewDto dto);
 

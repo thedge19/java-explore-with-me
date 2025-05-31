@@ -1,6 +1,9 @@
 package ru.practicum.ewm.service.comments.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.service.comments.dto.CommentDto;
@@ -29,10 +32,10 @@ public class CommentServiceImplementation implements CommentService {
     private final EventRepository eventRepository;
 
     @Transactional(readOnly = true)
-    public List<CommentDto> getAllByEventId(long eventId) {
-        return commentRepository.findAllByEventId(eventId).stream()
-                .map(CommentMapper.INSTANCE::toDto)
-                .collect(Collectors.toList());
+    public Page<CommentDto> getAllByEventId(long eventId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return commentRepository.findAllByEventId(eventId, pageable)
+                .map(CommentMapper.INSTANCE::toDto);
     }
 
     @Transactional
