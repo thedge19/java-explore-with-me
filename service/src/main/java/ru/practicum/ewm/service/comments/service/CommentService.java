@@ -6,6 +6,7 @@ import ru.practicum.ewm.service.comments.dto.CommentNewDto;
 import ru.practicum.ewm.service.comments.dto.CommentUpdateRequest;
 
 public interface CommentService {
+
     Page<CommentDto> getAllByEventId(long eventId, int page, int size);
 
     CommentDto create(long userId, long eventId, CommentNewDto dto);
