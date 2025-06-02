@@ -4,7 +4,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.service.event.dto.EventFullDto;
 import ru.practicum.ewm.service.event.dto.EventUpdateAdminRequest;
@@ -15,7 +14,7 @@ import ru.practicum.ewm.service.util.UtilConstants;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Validated
+
 @RestController
 @RequestMapping(path = "/admin/events")
 @RequiredArgsConstructor

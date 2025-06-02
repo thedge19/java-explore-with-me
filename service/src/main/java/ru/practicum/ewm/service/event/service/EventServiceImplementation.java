@@ -67,14 +67,13 @@ public class EventServiceImplementation implements EventService {
                                             LocalDateTime rangeEnd,
                                             int from,
                                             int size) {
-        // Обработка параметров
         Pageable pageable = PageRequest.of(from, size);
 
-        if (users != null && users.size() == 1 && users.getFirst().equals(0L)) {
+        if (users != null && users.size() == 1 && users.get(0).equals(0L)) {
             users = null;
         }
 
-        if (categories != null && categories.size() == 1 && categories.getFirst().equals(0L)) {
+        if (categories != null && categories.size() == 1 && categories.get(0).equals(0L)) {
             categories = null;
         }
 
@@ -86,57 +85,24 @@ public class EventServiceImplementation implements EventService {
             rangeEnd = UtilConstants.getMaxDateTime();
         }
 
-        // Получаем страницу событий
         Page<Event> page = eventRepository.findAllByAdmin(users, states, categories, rangeStart, rangeEnd, pageable);
-        List<Event> events = page.getContent();
 
-        if (events.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        // Получаем ID всех событий для групповых запросов
-        List<Long> eventIds = events.stream()
-                .map(Event::getId)
+        List<String> eventUrls = page.getContent().stream()
+                .map(event -> "/events/" + event.getId())
                 .collect(Collectors.toList());
 
-        // 1. Получаем статистику просмотров одним запросом
-        List<String> eventUrls = eventIds.stream()
-                .map(id -> "/events/" + id)
-                .collect(Collectors.toList());
+        List<ViewStatsDto> viewStatsDtos = statsClient.getStats(rangeStart.format(UtilConstants.getDefaultDateTimeFormatter()),
+                rangeEnd.format(UtilConstants.getDefaultDateTimeFormatter()), eventUrls, true);
 
-        List<ViewStatsDto> viewStatsDtos = statsClient.getStats(
-                rangeStart.format(UtilConstants.getDefaultDateTimeFormatter()),
-                rangeEnd.format(UtilConstants.getDefaultDateTimeFormatter()),
-                eventUrls,
-                true
-        );
-
-        // 2. Получаем количество подтвержденных запросов одним запросом
-        Map<Long, Long> confirmedRequestsMap = participationRequestRepository
-                .countByEventIdInAndStatus(eventIds, ParticipationRequestState.CONFIRMED)
-                .stream()
-                .collect(Collectors.toMap(
-                        tuple -> ((Number) tuple[0]).longValue(), // eventId
-                        tuple -> ((Number) tuple[1]).longValue()  // count
-                ));
-
-        // Собираем результат
-        return events.stream()
-                .map(event -> {
-                    EventFullDto dto = EventMapper.INSTANCE.toFullDto(event);
-
-                    // Устанавливаем просмотры
-                    dto.setViews(viewStatsDtos.stream()
-                            .filter(stats -> stats.getUri().equals("/events/" + event.getId()))
-                            .findFirst()
-                            .map(ViewStatsDto::getHits)
-                            .orElse(0L));
-
-                    // Устанавливаем подтвержденные запросы из мапы
-                    dto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(event.getId(), 0L));
-
-                    return dto;
+        return page.getContent().stream()
+                .map(EventMapper.INSTANCE::toFullDto)
+                .peek(dto -> {
+                    Optional<ViewStatsDto> matchingStats = viewStatsDtos.stream()
+                            .filter(statsDto -> statsDto.getUri().equals("/events/" + dto.getId()))
+                            .findFirst();
+                    dto.setViews(matchingStats.map(ViewStatsDto::getHits).orElse(0L));
                 })
+                .peek(dto -> dto.setConfirmedRequests(participationRequestRepository.countByEventIdAndStatus(dto.getId(), ParticipationRequestState.CONFIRMED)))
                 .collect(Collectors.toList());
     }
 
@@ -179,7 +145,6 @@ public class EventServiceImplementation implements EventService {
                                             int from,
                                             int size,
                                             HttpServletRequest request) {
-        // Логирование статистики
         statsClient.createEndpointHit(EndpointHitDto.builder()
                 .app("ewm")
                 .uri(request.getRequestURI())
@@ -187,86 +152,60 @@ public class EventServiceImplementation implements EventService {
                 .hitTimestamp(LocalDateTime.now())
                 .build());
 
-        // Обработка параметров
-        if (categories != null && categories.size() == 1 && categories.getFirst().equals(0L)) {
+        if (categories != null && categories.size() == 1 && categories.get(0).equals(0L)) {
             categories = null;
         }
+
         if (rangeStart == null) {
             rangeStart = LocalDateTime.now();
         }
+
         if (rangeEnd == null) {
             rangeEnd = UtilConstants.getMaxDateTime();
         }
 
-        // Получаем все подходящие события
         List<Event> eventList = eventRepository.getAllPublic(text, categories, paid, rangeStart, rangeEnd);
-        if (eventList.isEmpty()) {
+
+        if (onlyAvailable) {
+            eventList = eventList.stream()
+                    .filter(event -> event.getParticipantLimit().equals(0)
+                            || event.getParticipantLimit() < participationRequestRepository.countByEventIdAndStatus(event.getId(), ParticipationRequestState.CONFIRMED))
+                    .collect(Collectors.toList());
+        }
+
+        List<String> eventUrls = eventList.stream()
+                .map(event -> "/events/" + event.getId())
+                .collect(Collectors.toList());
+
+        List<ViewStatsDto> viewStatsDtos = statsClient.getStats(rangeStart.format(UtilConstants.getDefaultDateTimeFormatter()),
+                rangeEnd.format(UtilConstants.getDefaultDateTimeFormatter()), eventUrls, true);
+
+        List<EventShortDto> eventShortDtoList = eventList.stream()
+                .map(EventMapper.INSTANCE::toShortDto)
+                .peek(dto -> {
+                    Optional<ViewStatsDto> matchingStats = viewStatsDtos.stream()
+                            .filter(statsDto -> statsDto.getUri().equals("/events/" + dto.getId()))
+                            .findFirst();
+                    dto.setViews(matchingStats.map(ViewStatsDto::getHits).orElse(0L));
+                })
+                .peek(dto -> dto.setConfirmedRequests(participationRequestRepository.countByEventIdAndStatus(dto.getId(), ParticipationRequestState.CONFIRMED)))
+                .collect(Collectors.toList());
+
+        switch (sort) {
+            case EVENT_DATE:
+                Collections.sort(eventShortDtoList, Comparator.comparing(EventShortDto::getEventDate));
+                break;
+            case VIEWS:
+                Collections.sort(eventShortDtoList, Comparator.comparing(EventShortDto::getViews).reversed());
+                break;
+        }
+
+        if (from >= eventShortDtoList.size()) {
             return Collections.emptyList();
         }
 
-        // Собираем ID событий для групповых запросов
-        List<Long> eventIds = eventList.stream()
-                .map(Event::getId)
-                .collect(Collectors.toList());
-
-        // Получаем статистику просмотров одним запросом
-        List<String> eventUrls = eventIds.stream()
-                .map(id -> "/events/" + id)
-                .collect(Collectors.toList());
-        List<ViewStatsDto> viewStatsDtos = statsClient.getStats(
-                rangeStart.format(UtilConstants.getDefaultDateTimeFormatter()),
-                rangeEnd.format(UtilConstants.getDefaultDateTimeFormatter()),
-                eventUrls,
-                true
-        );
-
-        // Получаем количество подтвержденных запросов одним запросом
-        Map<Long, Long> confirmedRequestsCount = participationRequestRepository
-                .countByEventIdInAndStatus(eventIds, ParticipationRequestState.CONFIRMED)
-                .stream()
-                .collect(Collectors.toMap(
-                        tuple -> ((Number) tuple[0]).longValue(),
-                        tuple -> ((Number) tuple[1]).longValue()
-                ));
-
-        // Фильтрация по доступности (если нужно)
-        if (onlyAvailable) {
-            eventList = eventList.stream()
-                    .filter(event -> {
-                        Integer limit = event.getParticipantLimit();
-                        Long confirmed = confirmedRequestsCount.getOrDefault(event.getId(), 0L);
-                        return limit == 0 || limit > confirmed;
-                    })
-                    .toList();
-        }
-
-        // Преобразуем в DTO и устанавливаем дополнительные данные
-        List<EventShortDto> result = eventList.stream()
-                .map(event -> {
-                    EventShortDto dto = EventMapper.INSTANCE.toShortDto(event);
-                    // Устанавливаем просмотры
-                    dto.setViews(viewStatsDtos.stream()
-                            .filter(stats -> stats.getUri().equals("/events/" + event.getId()))
-                            .findFirst()
-                            .map(ViewStatsDto::getHits)
-                            .orElse(0L));
-                    // Устанавливаем подтвержденные запросы
-                    dto.setConfirmedRequests(confirmedRequestsCount.getOrDefault(event.getId(), 0L));
-                    return dto;
-                })
-                .collect(Collectors.toList());
-
-        // Сортировка
-        if (sort == EventControllerPublic.SortMode.EVENT_DATE) {
-            result.sort(Comparator.comparing(EventShortDto::getEventDate));
-        } else if (sort == EventControllerPublic.SortMode.VIEWS) {
-            result.sort(Comparator.comparing(EventShortDto::getViews).reversed());
-        }
-
-        // Пагинация
-        int fromIndex = Math.min(from, result.size());
-        int toIndex = Math.min(from + size, result.size());
-        return result.subList(fromIndex, toIndex);
+        int toIndex = Math.min(from + size, eventShortDtoList.size());
+        return eventShortDtoList.subList(from, toIndex);
     }
 
     @Transactional(readOnly = true)
@@ -290,7 +229,7 @@ public class EventServiceImplementation implements EventService {
                 UtilConstants.getMaxDateTime().plusYears(1).format(UtilConstants.getDefaultDateTimeFormatter()), eventUrls, true);
 
         EventFullDto dto = EventMapper.INSTANCE.toFullDto(event);
-        dto.setViews(viewStatsDtos.isEmpty() ? 0L : viewStatsDtos.getFirst().getHits());
+        dto.setViews(viewStatsDtos.isEmpty() ? 0L : viewStatsDtos.get(0).getHits());
         dto.setConfirmedRequests(participationRequestRepository.countByEventIdAndStatus(dto.getId(), ParticipationRequestState.CONFIRMED));
 
         return dto;
@@ -302,6 +241,11 @@ public class EventServiceImplementation implements EventService {
             throw new ConflictException("The event date must be 2 hours from the current time or later.");
         }
 
+        // Проверка participantLimit
+        if (eventNewDto.getParticipantLimit() != null && eventNewDto.getParticipantLimit() < 0) {
+            throw new BadRequestException("The participant limit must be a positive integer.");
+        }
+
         User user = findUserById(userId);
         Category category = findCategoryById(eventNewDto.getCategory());
         Location location = handleLocationDto(eventNewDto.getLocation());
@@ -311,12 +255,6 @@ public class EventServiceImplementation implements EventService {
         event.setInitiator(user);
         event.setCreatedOn(LocalDateTime.now());
         event.setState(EventState.PENDING);
-
-        if (eventNewDto.getParticipantLimit() != null) {
-            if (eventNewDto.getParticipantLimit() < 0) {
-                throw new BadRequestException("The participant limit must be a positive integer.");
-            }
-        }
 
         if (eventNewDto.getPaid() == null) {
             event.setPaid(false);
@@ -455,7 +393,7 @@ public class EventServiceImplementation implements EventService {
 
         List<Long> notFoundIds = eventRequestStatusUpdateRequest.getRequestIds().stream()
                 .filter(requestId -> requestList.stream().noneMatch(request -> request.getId().equals(requestId)))
-                .toList();
+                .collect(Collectors.toList());
 
         if (!notFoundIds.isEmpty()) {
             throw new NotFoundException("Participation request with id=" + notFoundIds + " was not found");

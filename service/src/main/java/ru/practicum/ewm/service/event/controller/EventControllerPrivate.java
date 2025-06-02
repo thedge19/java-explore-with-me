@@ -3,9 +3,7 @@ package ru.practicum.ewm.service.event.controller;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.service.event.dto.*;
 import ru.practicum.ewm.service.event.service.EventService;
@@ -13,8 +11,6 @@ import ru.practicum.ewm.service.participationRequest.dto.ParticipationRequestDto
 
 import java.util.List;
 
-@Validated
-@Slf4j
 @RestController
 @RequestMapping(path = "/users/{userId}/events")
 @RequiredArgsConstructor
@@ -23,8 +19,8 @@ public class EventControllerPrivate {
 
     @GetMapping()
     public List<EventShortDto> getAll(@PathVariable long userId,
-                                      @RequestParam(defaultValue = "0") @Min(0) int from,
-                                      @RequestParam(defaultValue = "10") @Min(1) int size) {
+                                      @Valid @RequestParam(defaultValue = "0") @Min(0) int from,
+                                      @Valid @RequestParam(defaultValue = "10") @Min(1) int size) {
         return eventService.getAllByInitiator(userId, from, size);
     }
 
@@ -58,7 +54,6 @@ public class EventControllerPrivate {
     public EventRequestStatusUpdateResult patchEventRequests(@PathVariable long userId,
                                                              @PathVariable long eventId,
                                                              @Valid @RequestBody EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
-
         return eventService.patchParticipationRequestsByInitiator(userId, eventId, eventRequestStatusUpdateRequest);
     }
 }
